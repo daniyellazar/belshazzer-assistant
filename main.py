@@ -36,9 +36,27 @@ styles = [
 def home():
     return "🧠 Belshazzar is online and evolving."
 
-@app.route("/chat")
+@app.route("/chat", methods=["GET"])
 def chat():
     return render_template("index.html")
+
+@app.route("/chat", methods=["POST"])
+def chat_post():
+    try:
+        data = request.get_json()
+        user_input = data.get("message", "").strip()
+
+        if not user_input:
+            return jsonify(error="⚠️ No message provided."), 400
+
+        style = random.choice(styles)
+        prompt = f"{style} Now respond to this: {user_input}"
+
+        response = model.generate_content(prompt)
+        return jsonify(response=response.text)
+
+    except Exception as e:
+        return jsonify(error=f"❌ Internal error: {str(e)}"), 500
 
 @app.route("/ai", methods=["POST"])
 def ai():
@@ -49,7 +67,6 @@ def ai():
         if not user_input:
             return jsonify(error="⚠️ No prompt provided."), 400
 
-        # 🎲 Inject a random style
         style = random.choice(styles)
         prompt = f"{style} Now respond to this: {user_input}"
 
