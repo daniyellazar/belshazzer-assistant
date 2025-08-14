@@ -65,7 +65,7 @@
       border-top: 1px solid rgba(255, 255, 255, 0.3);
     }
 
-    input[type="text"], select {
+    input[type="text"] {
       flex: 1;
       padding: 12px;
       font-size: 16px;
@@ -114,12 +114,6 @@
   <header>Belteshazzar Assistant</header>
   <div class="chat-container" id="chat"></div>
   <div class="input-area">
-    <select id="style">
-      <option value="bard">Shakespearean Bard</option>
-      <option value="teen">Sarcastic Teenager</option>
-      <option value="monk">Wise Monk</option>
-      <option value="pirate">Pirate</option>
-    </select>
     <input type="text" id="prompt" placeholder="Type your message..." />
     <button onclick="sendMessage()">Send</button>
   </div>
@@ -127,7 +121,6 @@
   <script>
     async function sendMessage() {
       const input = document.getElementById("prompt");
-      const style = document.getElementById("style").value;
       const chat = document.getElementById("chat");
       const userText = input.value.trim();
       if (!userText) return;
@@ -149,7 +142,7 @@
         const res = await fetch("/ai", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: userText, style })
+          body: JSON.stringify({ prompt: userText })
         });
         const data = await res.json();
         typing.textContent = data.response || data.error || "🤖 No response received.";
