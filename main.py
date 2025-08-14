@@ -57,9 +57,9 @@ def ai():
         return jsonify(error=f"❌ Internal error: {str(e)}"), 500
 
 # 🧪 Health check (optional)
-@app.route("/ping")
-def ping():
-    return "🧠 Belteshazzar is online and evolving."
+@app.route("/")
+def home():
+    return render_template("index.html")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
