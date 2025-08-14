@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Belteshazzar Assistant</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom right, #ff6a00, #ff3c38, #ffb347); /* 🔥 Vivid sunset tones */
+      color: #2e2e2e;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      padding: 20px;
+      font-size: 26px;
+      font-weight: bold;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      color: #2e2e2e;
+    }
+
+    .chat-container {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .message {
+      max-width: 70%;
+      padding: 15px;
+      border-radius: 15px;
+      background-color: rgba(255, 255, 255, 0.85);
+      color: #2e2e2e;
+      animation: fadeInUp 0.4s ease forwards;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    .user {
+      align-self: flex-end;
+      background-color: #ffd6a5;
+    }
+
+    .ai {
+      align-self: flex-start;
+      background-color: #ffe5d9;
+    }
+
+    .input-area {
+      display: flex;
+      padding: 15px;
+      background-color: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: none;
+      background-color: white;
+      color: #2e2e2e;
+      outline: none;
+      transition: box-shadow 0.3s ease;
+    }
+
+    /* 🔴 Glowing red effect on focus */
+    input[type="text"]:focus {
+      animation: pulseGlow 1.5s infinite;
+    }
+
+    @keyframes pulseGlow {
+      0% {
+        box-shadow: 0 0 10px 2px #ff3c38, 0 0 20px 4px #ff6a00;
+      }
+      50% {
+        box-shadow: 0 0 15px 4px #ff6a00, 0 0 25px 6px #ff3c38;
+      }
+      100% {
+        box-shadow: 0 0 10px 2px #ff3c38, 0 0 20px 4px #ff6a00;
+      }
+    }
+
+    button {
+      margin-left: 10px;
+      padding: 12px 20px;
+      font-size: 16px;
+      background-color: #ff6a00;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #ff3c38;
+    }
+
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>Belteshazzar Assistant</header>
+  <div class="chat-container" id="chat"></div>
+  <div class="input-area">
+    <input type="text" id="prompt" placeholder="Type your message..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById("prompt");
+      const chat = document.getElementById("chat");
+      const userText = input.value.trim();
+      if (!userText) return;
+
+      const userMsg = document.createElement("div");
+      userMsg.className = "message user";
+      userMsg.textContent = userText;
+      chat.appendChild(userMsg);
+      input.value = "";
+      chat.scrollTop = chat.scrollHeight;
+
+      const typing = document.createElement("div");
+      typing.className = "message ai";
+      typing.textContent = "Belteshazzar is thinking...";
+      chat.appendChild(typing);
+      chat.scrollTop = chat.scrollHeight;
+
+      try {
+        const res = await fetch("/ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: userText })
+        });
+        const data = await res.json();
+        typing.textContent = data.response || "🤖 No response received.";
+      } catch (err) {
+        typing.textContent = "⚠️ Error: " + err.message;
+      }
+    }
+
+    document.getElementById("prompt").addEventListener("keypress", function (e) {
+      if (e.key === "Enter") sendMessage();
+    });
+  </script>
+</body>
+</html>

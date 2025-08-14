@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.env
+
+# Logs and temp
+*.log
+*.tmp
+
+# Docker
+*.db
+*.sqlite
+*.pid
+
+# System junk
+Thumbs.db
+.DS_Store
