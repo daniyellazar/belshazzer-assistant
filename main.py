@@ -1,13 +1,14 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from dotenv import load_dotenv
-import google.generativeai as genai
-import os
-import random
 import logging
+import openai
 
 # 🔐 Load environment variables
 load_dotenv()
+
+# Import models & key rotation from config.py
+from config import gemini_model, switch_gemini_key, switch_openai_key
 
 app = Flask(__name__)
 CORS(app)
@@ -15,16 +16,7 @@ CORS(app)
 # 📝 Enable logging
 logging.basicConfig(level=logging.INFO)
 
-# 🔑 Load Gemini API key
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    raise RuntimeError("❌ GEMINI_API_KEY not found in environment variables.")
-
-# 🧠 Configure Gemini model
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash")
-
-# 🎭 Personality styles (optional fallback)
+# 🎭 Personality styles
 styles = {
     "bard": "Make it sound like a Shakespearean monologue.",
     "teen": "Respond with dry sarcasm and wit.",
@@ -41,30 +33,71 @@ styles = {
 def home():
     return render_template("index.html")
 
-# 🤖 Gemini response endpoint
+# 🤖 AI response endpoint
 @app.route("/ai", methods=["POST"])
 def ai():
     try:
+        if not request.is_json:
+            logging.warning("Request content-type is not JSON")
+            return jsonify(error="⚠️ Request must be JSON"), 400
+
         data = request.get_json()
         user_input = data.get("prompt", "").strip()
         style_key = data.get("style", "")
-        style = styles.get(style_key, "")  # Use empty string if style not found
+        style = styles.get(style_key, "")
 
         if not user_input:
             return jsonify(error="⚠️ No prompt provided."), 400
 
         # 🧠 Construct prompt
         prompt = f"{style} Now respond to this: {user_input}" if style else user_input
-        logging.info(f"Prompt sent to Gemini: {prompt}")
+        logging.info(f"Prompt: {prompt}")
 
-        response = model.generate_content(prompt)
-        return jsonify(response=response.text)
+        # 🌟 Try Gemini first
+        try:
+            response = gemini_model.generate_content(prompt)
+            return jsonify(response=response.text)
+
+        except Exception as gemini_error:
+            logging.warning(f"Gemini failed: {gemini_error}")
+            # 🔄 Switch Gemini key & retry once
+            if switch_gemini_key():
+                try:
+                    response = gemini_model.generate_content(prompt)
+                    return jsonify(response=response.text)
+                except Exception as e2:
+                    logging.error(f"Gemini retry failed: {e2}")
+
+        # 🔄 Fallback to OpenAI
+        try:
+            openai_response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}]
+            )
+            reply = openai_response.choices[0].message.content
+            return jsonify(response=reply)
+
+        except Exception as openai_error:
+            logging.warning(f"OpenAI failed: {openai_error}")
+            # 🔄 Switch OpenAI key & retry once
+            if switch_openai_key():
+                try:
+                    openai_response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                    reply = openai_response.choices[0].message.content
+                    return jsonify(response=reply)
+                except Exception as e2:
+                    logging.error(f"OpenAI retry failed: {e2}")
+
+        return jsonify(error="❌ All API keys exhausted."), 500
 
     except Exception as e:
         logging.error(f"Error in /ai endpoint: {str(e)}")
-        return jsonify(error=f"❌ Internal error: {str(e)}"), 500
+        return jsonify(error="❌ Internal server error"), 500
 
-# 🧪 Health check endpoint
+# 🧪 Health check
 @app.route("/health")
 def health():
     return jsonify(status="✅ OK", message="Assistant is running smoothly.")
